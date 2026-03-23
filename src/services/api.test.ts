@@ -16,7 +16,7 @@ describe('API Service', () => {
         });
         
         const result = await translateText("test", "context");
-        expect(global.fetch).toHaveBeenCalledWith('http://localhost:8000/translate', expect.objectContaining({
+        expect(global.fetch).toHaveBeenCalledWith('/api/translate', expect.objectContaining({
             method: 'POST',
             body: JSON.stringify({ text: "test", context: "context" })
         }));
@@ -30,7 +30,7 @@ describe('API Service', () => {
         });
         
         const result = await getTTS("ტესტი", "voice1");
-        expect(global.fetch).toHaveBeenCalledWith('http://localhost:8000/tts', expect.objectContaining({
+        expect(global.fetch).toHaveBeenCalledWith('/api/tts', expect.objectContaining({
             method: 'POST',
             body: JSON.stringify({ text: "ტესტი", voice_id: "voice1" })
         }));

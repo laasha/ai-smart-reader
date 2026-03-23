@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, FileText, Plus, Search, BrainCircuit, Library, Sparkles, BookOpen, Trash2, Loader2, BookX, LogOut, Link as LinkIcon, Globe, X, Edit, ChevronDown } from 'lucide-react';
+import { 
+  Upload, FileText, Plus, Search, BrainCircuit, Library, Sparkles, BookOpen, Trash2, 
+  Loader2, BookX, LogOut, Link as LinkIcon, Globe, X, Edit, ChevronDown, 
+  Headphones, Play, Bookmark 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -18,20 +22,17 @@ const gradients = [
   'from-purple-500 to-fuchsia-600'
 ];
 
-interface Flashcard {
-  id: string;
-  original: string;
-  translated: string;
-  context: string;
-}
 
 const Dashboard = () => {
-  const { books, addBook, removeBook, setCurrentBook, fetchBooks, flashcards, updateFlashcard } = useReaderStore();
+  const { 
+    books, addBook, removeBook, setCurrentBook, fetchBooks, flashcards, 
+    updateFlashcard, highlights, explanations, removeExplanation 
+  } = useReaderStore();
   
   useEffect(() => {
     fetchBooks();
   }, [fetchBooks]);
-  const [tab, setTab] = useState<'books' | 'flashcards'>('books');
+  const [tab, setTab] = useState<'books' | 'audio' | 'insights' | 'flashcards'>('books');
   const [toast, setToast] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -176,7 +177,8 @@ const Dashboard = () => {
   };
 
   const handleAddCatalogBook = async (bookRes: any) => {
-    if (!bookRes.download_url) {
+    const url = bookRes.download_url;
+    if (!url) {
       showToast('ამ წიგნის ტექსტური ვერსია (URL) მიუწვდომელია.');
       return;
     }
@@ -348,16 +350,24 @@ const Dashboard = () => {
 
         {/* Premium Tab Switcher */}
         <div className="flex gap-8 border-b border-black/5 dark:border-white/5 mb-12 relative overflow-x-auto hide-scrollbar">
-          {(['books', 'flashcards'] as const).map((t) => (
+          {(['books', 'audio', 'insights', 'flashcards'] as const).map((t) => (
             <button 
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                "pb-6 font-bold text-lg md:text-xl transition-all relative capitalize whitespace-nowrap",
+                "pb-6 font-bold text-lg md:text-xl transition-all relative capitalize whitespace-nowrap flex items-center gap-2",
                 tab === t ? "text-zinc-900 dark:text-white" : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
               )}
             >
-              {t === 'books' ? 'ჩემი ბიბლიოთეკა' : 'ბარათები'}
+              {t === 'books' && <Library className="w-5 h-5" />}
+              {t === 'audio' && <Headphones className="w-5 h-5" />}
+              {t === 'insights' && <Sparkles className="w-5 h-5" />}
+              {t === 'flashcards' && <BrainCircuit className="w-5 h-5" />}
+              
+              {t === 'books' ? 'ბიბლიოთეკა' : 
+               t === 'audio' ? 'აუდიო' : 
+               t === 'insights' ? 'ინსაიტები' : 'ბარათები'}
+              
               {tab === t && (
                 <motion.div layoutId="activeTabBadge" className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-indigo-500 rounded-t-full shadow-[0_-4px_12px_rgba(99,102,241,0.5)]" />
               )}
@@ -469,6 +479,82 @@ const Dashboard = () => {
                   ))}
                 </div>
               )}
+            </motion.div>
+          ) : tab === 'audio' ? (
+            <motion.div key="audio" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {books.filter(b => b.audiobookUrl).length > 0 ? (
+                    books.filter(b => b.audiobookUrl).map(book => (
+                      <div key={book.id} className="bg-white/60 dark:bg-zinc-900/40 backdrop-blur-2xl p-6 rounded-[2.5rem] border border-white/50 dark:border-white/10 flex items-center gap-6 group">
+                        <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg shrink-0">
+                          {book.cover ? <img src={book.cover} className="w-full h-full object-cover" /> : <div className={cn("w-full h-full flex items-center justify-center bg-gradient-to-br", getGradientForBook(book.id))}><BookOpen className="text-white/50" /></div>}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-black text-lg truncate mb-1">{book.title}</h3>
+                          <p className="text-zinc-500 text-xs mb-4">{book.author}</p>
+                          <button 
+                            onClick={() => setCurrentBook(book.id)}
+                            className="bg-indigo-500 text-white px-6 py-2 rounded-full font-bold text-xs flex items-center gap-2 hover:scale-105 active:scale-95 transition-all w-fit"
+                          >
+                            <Play className="w-3 h-3 fill-current" /> მოსმენა
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full py-20 text-center opacity-50">
+                      <Headphones className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                      <p className="font-bold">აუდიოწიგნები არ არის. გახსენით წიგნი და გამოიყენეთ "Audiobook Factory".</p>
+                    </div>
+                  )}
+               </div>
+            </motion.div>
+          ) : tab === 'insights' ? (
+            <motion.div key="insights" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="w-full">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {explanations.length > 0 || highlights.length > 0 ? (
+                    <>
+                      {explanations.map(exp => (
+                        <div key={exp.id} className="bg-indigo-50/50 dark:bg-indigo-500/5 p-8 rounded-[2rem] border border-indigo-500/10 relative group">
+                           <div className="flex items-center gap-2 mb-4 opacity-60">
+                              <Sparkles className="w-4 h-4 text-indigo-500" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">{books.find(b => b.id === exp.bookId)?.title || 'Book'}</span>
+                           </div>
+                           <p className="text-zinc-500 italic text-sm mb-4 line-clamp-3">"{exp.text}"</p>
+                           <div className="h-px bg-indigo-500/10 mb-4" />
+                           <p className="text-zinc-900 dark:text-zinc-100 font-medium leading-relaxed">{exp.explanation}</p>
+                           <button onClick={(e) => { e.stopPropagation(); removeExplanation(exp.id); }} className="absolute top-4 right-4 p-2 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all">
+                              <Trash2 className="w-4 h-4" />
+                           </button>
+                        </div>
+                      ))}
+                      {highlights.map(hl => (
+                        <div key={hl.id} className="bg-white/60 dark:bg-zinc-900/40 p-8 rounded-[2rem] border border-black/5 dark:border-white/5 relative group">
+                           <div className="flex items-center gap-2 mb-4 opacity-60">
+                              <Bookmark className="w-4 h-4 text-zinc-400" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">{books.find(b => b.id === hl.bookId)?.title || 'Book'}</span>
+                           </div>
+                           <p className={cn(
+                             "font-bold leading-relaxed mb-4",
+                             hl.color === 'yellow' ? 'text-amber-600' : hl.color === 'green' ? 'text-emerald-600' : hl.color === 'blue' ? 'text-blue-600' : 'text-pink-600'
+                           )}>
+                             {hl.text}
+                           </p>
+                           {hl.note && (
+                             <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
+                               <p className="text-xs text-zinc-500 italic">{hl.note}</p>
+                             </div>
+                           )}
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="col-span-full py-20 text-center opacity-50">
+                      <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                      <p className="font-bold">ინსაიტები ჯერ არ არის. კითხვისას გამოიყენეთ "AI ახსნა" ან მონიშნეთ ტექსტი.</p>
+                    </div>
+                  )}
+               </div>
             </motion.div>
           ) : (
             <motion.div key="flashcards" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full">

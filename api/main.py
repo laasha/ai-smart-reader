@@ -9,9 +9,9 @@ from typing import List, Optional
 import httpx
 import uuid
 
-# Local imports
-from processing import extract_text_from_pdf, extract_text_from_epub, extract_text_from_docx, extract_text_from_txt, extract_text_from_html, extract_text_from_md
-from ai_service import translate_text, generate_audio_stream, explain_text, analyze_book, generate_book_cover, generate_full_audiobook, audiobook_progress, generate_ai_flashcard
+# Local imports (using absolute imports or ensuring they are in the same directory)
+from .processing import extract_text_from_pdf, extract_text_from_epub, extract_text_from_docx, extract_text_from_txt, extract_text_from_html, extract_text_from_md
+from .ai_service import translate_text, generate_audio_stream, explain_text, analyze_book, generate_book_cover, generate_full_audiobook, audiobook_progress, generate_ai_flashcard, PERSONAS
 
 
 load_dotenv()
@@ -27,17 +27,21 @@ app.add_middleware(
         "http://127.0.0.1:3030",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://mkitkhavi.vercel.app"
+        "https://mkitkhavi.vercel.app",
+        "https://ai-reader-ten.vercel.app", # Adding common Vercel naming patterns
+        "*" # Allow all for production to avoid CORS issues on different Vercel deployments
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve cached audio
-if not os.path.exists("audio_cache"):
-    os.makedirs("audio_cache")
-app.mount("/audio", StaticFiles(directory="audio_cache"), name="audio")
+# Use /tmp for Vercel serverless environment
+CACHE_DIR = "/tmp/audio_cache"
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+app.mount("/audio", StaticFiles(directory=CACHE_DIR), name="audio")
 
 class TranslationRequest(BaseModel):
     text: str
@@ -57,6 +61,7 @@ class URLImportRequest(BaseModel):
 class ExplainRequest(BaseModel):
     text: str
     context: str
+    persona: Optional[str] = "linguist"
 
 class AnalyzeBookRequest(BaseModel):
     title: str
@@ -83,10 +88,14 @@ class FlashcardAIRequest(BaseModel):
 @app.post("/explain")
 async def explain(request: ExplainRequest):
     try:
-        explanation = await explain_text(request.text, request.context)
+        explanation = await explain_text(request.text, request.context, persona_id=request.persona)
         return {"explanation": explanation}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/personas")
+async def get_personas():
+    return PERSONAS
 
 @app.post("/analyze-book")
 async def analyze(request: AnalyzeBookRequest):
@@ -133,15 +142,15 @@ async def generate_flashcard_ai_endpoint(request: FlashcardAIRequest):
 
 @app.get("/")
 async def root():
-    return {"message": "AI Smart Reader API is running"}
+    return {"message": "AI Smart Reader API is running on Vercel"}
 
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
     extension = file.filename.split(".")[-1].lower()
     content = await file.read()
     
-    # Temporarily save and process
-    temp_path = f"temp_{file.filename}"
+    # Use /tmp for Vercel
+    temp_path = f"/tmp/temp_{uuid.uuid4().hex}_{file.filename}"
     with open(temp_path, "wb") as f:
         f.write(content)
         
@@ -200,7 +209,7 @@ async def import_url(request: URLImportRequest):
             response = await client.get(request.url, headers=headers)
             response.raise_for_status()
             
-        temp_path = f"temp_url_{uuid.uuid4().hex}"
+        temp_path = f"/tmp/temp_url_{uuid.uuid4().hex}"
         # Determine extension based on content-type or URL
         content_type = response.headers.get("content-type", "").lower()
         if "application/pdf" in content_type or request.url.lower().endswith(".pdf"):

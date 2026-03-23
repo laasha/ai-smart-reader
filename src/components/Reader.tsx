@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useReaderStore } from '../store/useReaderStore';
 import { useTextSelection } from '../hooks/useTextSelection';
-import { translateText, API_URL } from '../services/api';
+import { translateText, API_URL, explainText } from '../services/api';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -25,8 +25,9 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
     setPlaybackSpeed, setAutoNext, zenMode, setZenMode, 
     showParallel, setShowParallel, addFlashcard,
     highlights, addHighlight, updateHighlightNote, removeHighlight,
-    ttsVoice, ttsRate, ttsPitch, translateToLang,
-    setTtsVoice, setTtsRate, setTtsPitch, setTranslateToLang
+    ttsVoice, ttsRate, ttsPitch, translateToLang, aiPersona,
+    setTtsVoice, setTtsRate, setTtsPitch, setTranslateToLang, setAiPersona,
+    updateBook, addExplanation
   } = useReaderStore();
   const book = books.find(b => b.id === bookId);
   const initialScroll = book?.progress || 0;
@@ -247,17 +248,22 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
     if (!selection) return;
     setExplainLoading(true);
     try {
-      const response = await fetch(`${API_URL}/explain`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          text: selection.text, 
-          context: selection.context || selection.text 
-        })
-      });
-      if (!response.ok) throw new Error("Explanation failed");
-      const data = await response.json();
+      const data = await explainText(
+        selection.text, 
+        selection.context || selection.text,
+        aiPersona
+      );
       setExplainResult(data.explanation);
+      
+      // Save for Insights tab
+      addExplanation({
+        id: crypto.randomUUID(),
+        bookId,
+        text: selection.text,
+        explanation: data.explanation,
+        timestamp: Date.now()
+      });
+
       setSelection(null);
     } catch (e) {
       console.error("Explanation error:", e);
@@ -285,6 +291,9 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
         })
       });
       if (!response.ok) throw new Error("Generation failed");
+      
+      // Mark as having an audiobook
+      updateBook(bookId, { audiobookUrl: `${API_URL}/audiobooks/${bookId}/index.mp3` }); // Placeholder or base path
     } catch (e) {
       console.error(e);
       setIsGeneratingAudiobook(false);
@@ -348,7 +357,7 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
       if (id) setActiveSegment(id);
       setIsPlaying(true);
       try {
-        const res = await fetch('http://localhost:8000/tts', {
+        const res = await fetch(`${API_URL}/tts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -881,6 +890,33 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
                     <div>
                       <div className="flex justify-between mb-2"><label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">ტონი</label><span className="text-xs font-black text-emerald-500">{ttsPitch}</span></div>
                       <input type="range" min="-50" max="50" value={parseInt(ttsPitch.replace('Hz',''))} onChange={(e) => setTtsPitch(`${parseInt(e.target.value)>=0?'+':''}${e.target.value}Hz`)} className="w-full accent-emerald-500" />
+                    </div>
+                  </div>
+
+                  {/* AI Persona Selection */}
+                  <div className="pt-4 border-t border-black/5 dark:border-white/5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-4 block">აქტიური AI ბოტი</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: 'linguist', name: 'ლინგვისტი', icon: Languages },
+                        { id: 'philosopher', name: 'ფილოსოფოსი', icon: Coffee },
+                        { id: 'librarian', name: 'ბიბლიოთეკარი', icon: Bookmark },
+                        { id: 'storyteller', name: 'მთხრობელი', icon: Zap }
+                      ].map((p) => (
+                        <button 
+                          key={p.id} 
+                          onClick={() => setAiPersona(p.id)}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-3 rounded-2xl border transition-all gap-1",
+                            aiPersona === p.id 
+                              ? "border-indigo-500 bg-indigo-500/10 text-indigo-500 shadow-sm" 
+                              : "border-black/5 dark:border-white/10 hover:bg-black/5 text-zinc-500"
+                          )}
+                        >
+                          <p.icon className="w-4 h-4" />
+                          <span className="text-[10px] font-bold">{p.name}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 

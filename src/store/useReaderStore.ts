@@ -23,6 +23,15 @@ export interface Book {
   content: BookSection[];
   category?: string;
   cover?: string;
+  audiobookUrl?: string;
+}
+
+export interface AIExplanation {
+  id: string;
+  bookId: string;
+  text: string;
+  explanation: string;
+  timestamp: number;
 }
 
 export interface Flashcard {
@@ -59,11 +68,13 @@ interface ReaderState {
   showParallel: boolean;
   flashcards: Flashcard[];
   highlights: Highlight[];
+  explanations: AIExplanation[];
   
   ttsVoice: string;
   ttsRate: string;
   ttsPitch: string;
   translateToLang: string;
+  aiPersona: string;
   
   setTheme: (theme: Theme) => void;
   setFont: (font: Font) => void;
@@ -76,6 +87,7 @@ interface ReaderState {
   setTtsRate: (rate: string) => void;
   setTtsPitch: (pitch: string) => void;
   setTranslateToLang: (lang: string) => void;
+  setAiPersona: (persona: string) => void;
   
   addBook: (book: Book) => void;
   removeBook: (id: string) => void;
@@ -90,6 +102,8 @@ interface ReaderState {
   addHighlight: (highlight: Highlight) => void;
   removeHighlight: (id: string) => void;
   updateHighlightNote: (id: string, note: string) => void;
+  addExplanation: (exp: AIExplanation) => void;
+  removeExplanation: (id: string) => void;
   enhanceBookWithAI: (id: string) => Promise<void>;
 }
 
@@ -129,11 +143,13 @@ export const useReaderStore = create<ReaderState>()(
       showParallel: false,
       flashcards: [],
       highlights: [],
+      explanations: [],
 
       ttsVoice: 'ka-GE-EkaNeural',
       ttsRate: '+0%',
       ttsPitch: '+0Hz',
       translateToLang: 'none',
+      aiPersona: 'linguist',
 
       setTheme: (theme) => set({ theme }),
       setFont: (font) => set({ font }),
@@ -148,6 +164,7 @@ export const useReaderStore = create<ReaderState>()(
       setTtsRate: (ttsRate) => set({ ttsRate }),
       setTtsPitch: (ttsPitch) => set({ ttsPitch }),
       setTranslateToLang: (translateToLang) => set({ translateToLang }),
+      setAiPersona: (aiPersona) => set({ aiPersona }),
 
       addBook: async (book) => {
         set((state) => ({ books: [book, ...state.books] }));
@@ -272,6 +289,26 @@ export const useReaderStore = create<ReaderState>()(
         }));
         await supabase.from('highlights').update({ note }).eq('id', id);
       },
+
+      addExplanation: async (exp) => {
+        set((state) => ({ explanations: [exp, ...state.explanations] }));
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.from('explanations').insert({
+            id: exp.id,
+            user_id: session.user.id,
+            book_id: exp.bookId,
+            text: exp.text,
+            explanation: exp.explanation,
+            timestamp: new Date(exp.timestamp).toISOString()
+          });
+        }
+      },
+
+      removeExplanation: async (id) => {
+        set((state) => ({ explanations: state.explanations.filter(e => e.id !== id) }));
+        await supabase.from('explanations').delete().eq('id', id);
+      },
       
       fetchBooks: async () => {
         if (!supabase) return;
@@ -309,6 +346,15 @@ export const useReaderStore = create<ReaderState>()(
           }));
           set({ highlights: formattedHighlights });
         }
+
+        const explanationsRes = await supabase.from('explanations').select('*').eq('user_id', session.user.id);
+        if (explanationsRes.data) {
+          const formattedExps = explanationsRes.data.map((e: any) => ({
+            id: e.id, bookId: e.book_id, text: e.text, 
+            explanation: e.explanation, timestamp: new Date(e.timestamp).getTime()
+          }));
+          set({ explanations: formattedExps });
+        }
       },
       enhanceBookWithAI: async (id) => {
         const state = get();
@@ -318,7 +364,7 @@ export const useReaderStore = create<ReaderState>()(
         try {
           // 1. Analyze Book
           const contentSample = book.content.slice(0, 5).map(s => s.content).join("\n");
-          const analyzeRes = await fetch('http://localhost:8000/analyze-book', {
+          const analyzeRes = await fetch('/api/analyze-book', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: book.title, author: book.author, content_sample: contentSample })
@@ -330,7 +376,7 @@ export const useReaderStore = create<ReaderState>()(
 
           // 2. Generate Cover (only if one doesn't exist)
           if (!book.cover) {
-            const coverRes = await fetch('http://localhost:8000/generate-cover', {
+            const coverRes = await fetch('/api/generate-cover', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ title: book.title, summary: analysis.summary, category: analysis.category })
@@ -361,10 +407,12 @@ export const useReaderStore = create<ReaderState>()(
         zenMode: state.zenMode,
         showParallel: state.showParallel,
         flashcards: state.flashcards,
+        explanations: state.explanations,
         ttsVoice: state.ttsVoice,
         ttsRate: state.ttsRate,
         ttsPitch: state.ttsPitch,
         translateToLang: state.translateToLang,
+        aiPersona: state.aiPersona,
       }),
     }
   )
