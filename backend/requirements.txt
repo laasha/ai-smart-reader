@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-multipart
+pydantic
+openai
+elevenlabs
+pymupdf
+python-dotenv
+supabase
+httpx
+gTTS
+ebooklib
+beautifulsoup4
+python-docx
+edge-tts
