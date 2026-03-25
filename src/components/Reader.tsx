@@ -293,7 +293,8 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
       if (!response.ok) throw new Error("Generation failed");
       
       // Mark as having an audiobook
-      updateBook(bookId, { audiobookUrl: `${API_URL}/audiobooks/${bookId}/index.mp3` }); // Placeholder or base path
+      const audioUrl = `${API_URL}/audiobooks/${bookId}/index.mp3`;
+      updateBook(bookId, { audiobookUrl: audioUrl });
     } catch (e) {
       console.error(e);
       setIsGeneratingAudiobook(false);
@@ -581,17 +582,29 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
       {/* Zen Mode Exit Button */}
       <AnimatePresence>
         {zenMode && (
-          <motion.button
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 0.2, y: 0 }}
-            whileHover={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            onClick={() => setZenMode(false)}
-            className="fixed top-6 right-6 z-[70] p-3 rounded-full bg-black/10 dark:bg-white/10 text-zinc-900 dark:text-white backdrop-blur-md shadow-lg transition-opacity duration-300"
-            title="Zen Mode-დან გამოსვლა"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed top-8 right-8 z-[100] flex flex-col items-end gap-3"
           >
-            <X className="w-5 h-5" />
-          </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setZenMode(false)}
+              className="p-4 rounded-full bg-black/20 dark:bg-white/10 text-zinc-900 dark:text-white backdrop-blur-xl shadow-2xl border border-white/20 transition-all group"
+              title="Zen Mode-დან გამოსვლა (ESC)"
+            >
+              <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
+            </motion.button>
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 0.5, x: 0 }}
+              className="bg-black/40 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest backdrop-blur-md border border-white/10"
+            >
+              ESC გამოსასვლელად
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 

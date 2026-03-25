@@ -9,12 +9,18 @@ from typing import List, Optional
 import httpx
 import uuid
 
-# Local imports
+load_dotenv()
+
+# Set cache directory from environment or default
+CACHE_DIR = os.getenv("AUDIO_CACHE_DIR", "audio_cache")
+os.environ["AUDIO_CACHE_DIR"] = CACHE_DIR
+
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Local imports (imported AFTER setting environment variables)
 from processing import extract_text_from_pdf, extract_text_from_epub, extract_text_from_docx, extract_text_from_txt, extract_text_from_html, extract_text_from_md
 from ai_service import translate_text, generate_audio_stream, explain_text, analyze_book, generate_book_cover, generate_full_audiobook, audiobook_progress, generate_ai_flashcard
-
-
-load_dotenv()
 
 app = FastAPI(title="AI Smart Reader API")
 
@@ -34,10 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve cached audio
-if not os.path.exists("audio_cache"):
-    os.makedirs("audio_cache")
-app.mount("/audio", StaticFiles(directory="audio_cache"), name="audio")
+app.mount("/audio", StaticFiles(directory=CACHE_DIR), name="audio")
 
 class TranslationRequest(BaseModel):
     text: str

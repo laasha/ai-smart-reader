@@ -36,6 +36,7 @@ const Dashboard = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'processing' | 'finalizing'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showUrlModal, setShowUrlModal] = useState(false);
@@ -48,11 +49,6 @@ const Dashboard = () => {
 
   const [editingBook, setEditingBook] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({ title: '', author: '', category: '', cover: '' });
-
-  const handleNotImplemented = (feature: string) => {
-    setToast(`${feature} ჯერ არ არის დამატებული.`);
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -76,12 +72,13 @@ const Dashboard = () => {
     }
 
     setIsUploading(true);
-    showToast('ფაილი იტვირთება და მუშავდება...');
+    setUploadStage('uploading');
     
     try {
       const formData = new FormData();
       formData.append('file', file);
 
+      // Stage 1: Uploading to server
       const response = await fetch(`${API_URL}/upload`, {
         method: 'POST',
         body: formData,
@@ -89,8 +86,12 @@ const Dashboard = () => {
 
       if (!response.ok) throw new Error('სერვერმა ვერ დაამუშავა ფაილი');
 
+      // Stage 2: Processing (Backend does this synchronously now, but we simulate stage transitions)
+      setUploadStage('processing');
       const data = await response.json();
       
+      // Stage 3: Finalizing in local store
+      setUploadStage('finalizing');
       addBook({
         id: crypto.randomUUID(),
         title: file.name.replace(/\.[^/.]+$/, ""),
@@ -106,6 +107,7 @@ const Dashboard = () => {
       showToast('ფაილის ატვირთვა ვერ მოხერხდა. შეამოწმეთ სერვერთან კავშირი.');
     } finally {
       setIsUploading(false);
+      setUploadStage('idle');
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -299,8 +301,12 @@ const Dashboard = () => {
                 disabled={isUploading}
                 className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-3.5 rounded-full font-bold shadow-[0_0_40px_rgba(79,70,229,0.4)] hover:shadow-[0_0_60px_rgba(79,70,229,0.6)] active:scale-95 transition-all overflow-hidden shrink-0"
               >
-                {isUploading ? <Loader2 className="w-5 h-5 animate-spin shrink-0" /> : <Plus className={cn("w-5 h-5 transition-transform duration-300 shrink-0", showAddMenu && "rotate-45")} />}
-                <span className="hidden sm:inline whitespace-nowrap">{isUploading ? 'მიმდინარეობს...' : 'ატვირთვა'}</span>
+                 {isUploading ? <Loader2 className="w-5 h-5 animate-spin shrink-0" /> : <Plus className={cn("w-5 h-5 transition-transform duration-300 shrink-0", showAddMenu && "rotate-45")} />}
+                <span className="hidden sm:inline whitespace-nowrap">
+                  {uploadStage === 'uploading' ? 'იტვირთება...' : 
+                   uploadStage === 'processing' ? 'მუშავდება...' : 
+                   uploadStage === 'finalizing' ? 'თითქმის მზადაა...' : 'ატვირთვა'}
+                </span>
                 {!isUploading && <ChevronDown className="w-4 h-4 opacity-70 hidden sm:inline shrink-0" />}
               </button>
               

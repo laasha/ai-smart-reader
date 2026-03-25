@@ -13,9 +13,11 @@ load_dotenv()
 
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY", "dummy_key_to_prevent_import_crash"))
 
-CACHE_DIR = "audio_cache"
+CACHE_DIR = os.getenv("AUDIO_CACHE_DIR", "audio_cache")
 if not os.path.exists(CACHE_DIR):
-    os.makedirs(CACHE_DIR)
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+audiobook_progress = {}
 
 async def translate_text(text: str, target_lang: str = "ka", context: str = None) -> str:
     """

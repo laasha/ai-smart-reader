@@ -9,12 +9,18 @@ from typing import List, Optional
 import httpx
 import uuid
 
-# Local imports (using absolute imports or ensuring they are in the same directory)
+load_dotenv()
+
+# Use /tmp for Vercel serverless environment, or local cache
+CACHE_DIR = "/tmp/audio_cache" if os.getenv("VERCEL") else os.getenv("AUDIO_CACHE_DIR", "audio_cache")
+os.environ["AUDIO_CACHE_DIR"] = CACHE_DIR
+
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Local imports (imported AFTER setting environment variables)
 from .processing import extract_text_from_pdf, extract_text_from_epub, extract_text_from_docx, extract_text_from_txt, extract_text_from_html, extract_text_from_md
 from .ai_service import translate_text, generate_audio_stream, explain_text, analyze_book, generate_book_cover, generate_full_audiobook, audiobook_progress, generate_ai_flashcard, PERSONAS
-
-
-load_dotenv()
 
 app = FastAPI(title="AI Smart Reader API")
 
@@ -35,11 +41,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Use /tmp for Vercel serverless environment
-CACHE_DIR = "/tmp/audio_cache"
-if not os.path.exists(CACHE_DIR):
-    os.makedirs(CACHE_DIR, exist_ok=True)
 
 app.mount("/audio", StaticFiles(directory=CACHE_DIR), name="audio")
 
