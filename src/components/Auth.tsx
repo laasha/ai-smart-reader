@@ -20,14 +20,16 @@ export const Auth: React.FC = () => {
     setError(null);
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase კავშირი ვერ დამყარდა. გთხოვთ შეამოწმოთ გარემო ცვლადები (VITE_SUPABASE_URL და VITE_SUPABASE_ANON_KEY).');
+      }
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        // Optionally show "Check your email" depending on Supabase settings.
-        // For local / auto-confirm environments, this works immediately.
       }
     } catch (err: any) {
       let errorMsg = err.message || 'დაფიქსირდა შეცდომა';
@@ -186,19 +188,17 @@ export const Auth: React.FC = () => {
                 {isLogin ? 'არ გაქვთ ანგარიში? დარეგისტრირდით' : 'უკვე გაქვთ ანგარიში? შემოხვედით'}
               </button>
 
-              {import.meta.env.DEV && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if ((window as any).bypassAuth) {
-                      (window as any).bypassAuth();
-                    }
-                  }}
-                  className="text-[10px] font-black uppercase tracking-widest text-white hover:text-white transition-all bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 rounded-xl py-3 shadow-lg shadow-indigo-500/10"
-                >
-                  სწრაფი შესვლა (Bypass Auth)
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if ((window as any).bypassAuth) {
+                    (window as any).bypassAuth();
+                  }
+                }}
+                className="text-[10px] font-black uppercase tracking-widest text-white hover:text-white transition-all bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 rounded-xl py-3 shadow-lg shadow-indigo-500/10"
+              >
+                სწრაფი შესვლა (Bypass Auth - TESTING ONLY)
+              </button>
             </div>
 
           </form>
