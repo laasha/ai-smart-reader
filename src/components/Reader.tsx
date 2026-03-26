@@ -267,7 +267,7 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
       setSelection(null);
     } catch (e) {
       console.error("Explanation error:", e);
-      setExplainResult("შეცდომა განმარტების მიღებისას. დარწმუნდით რომ OPENAI_API_KEY გაწერილია .env-ში.");
+      setExplainResult("შეცდომა განმარტების მიღებისას. დარწმუნდით რომ GEMINI_API_KEY გაწერილია .env-ში.");
     } finally {
       setExplainLoading(false);
     }

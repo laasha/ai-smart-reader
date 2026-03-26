@@ -122,6 +122,10 @@ async def analyze_book(title: str, author: str, content_sample: str) -> dict:
         print(f"Gemini Analyze error: {e}")
         return {"category": "Fiction", "summary": f"A book by {author}."}
 
+async def generate_book_cover(title: str, summary: str, category: str) -> str:
+    """Placeholder for book cover generation (Gemini Flash doesn't support images)."""
+    return ""
+
 async def generate_ai_flashcard(text: str, context: str) -> dict:
     if not model:
         return {"question": text, "answer": "API Error"}
