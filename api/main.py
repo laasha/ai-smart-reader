@@ -34,8 +34,9 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://mkitkhavi.vercel.app",
-        "https://ai-reader-ten.vercel.app", # Adding common Vercel naming patterns
-        "*" # Allow all for production to avoid CORS issues on different Vercel deployments
+        "https://ai-reader-ten.vercel.app",
+        "https://ai-smart-reader.vercel.app",
+        "*" 
     ],
     allow_credentials=True,
     allow_methods=["*"],
