@@ -19,6 +19,11 @@ import os
 # Inject current directory into sys.path for Vercel
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# Audio cache directory for serverless
+CACHE_DIR = "/tmp/audio_cache"
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
 # Local imports
 from processing import extract_text_from_pdf, extract_text_from_epub, extract_text_from_docx, extract_text_from_txt, extract_text_from_html, extract_text_from_md
 from ai_service import translate_text, generate_audio_stream, generate_audio_bytes, explain_text, analyze_book, generate_book_cover, generate_full_audiobook, audiobook_progress, generate_ai_flashcard, PERSONAS
