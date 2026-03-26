@@ -6,6 +6,7 @@ import hashlib
 import edge_tts
 import asyncio
 import google.generativeai as genai
+import re
 
 load_dotenv()
 
@@ -51,6 +52,21 @@ def prepare_text_for_tts(text: str) -> str:
     # TTS engines rush over dashes. We replace em-dashes marking dialogues with a dash and a comma to force a breathing pause.
     text = re.sub(r'([—-])\s*(?=[ა-ჰa-zA-Z])', r'\1, ', text)
     return text
+
+async def generate_audio_bytes(text: str, voice: str = "ka-GE-EkaNeural", rate: str = "+0%", pitch: str = "+0Hz", translate_to: str = None) -> bytes:
+    """Generates audio bytes directly without using a file cache."""
+    if translate_to and translate_to != 'none':
+        text = await translate_text(text, target_lang=translate_to)
+
+    tts_ready_text = prepare_text_for_tts(text)
+    communicate = edge_tts.Communicate(tts_ready_text, voice, rate=rate, pitch=pitch)
+    
+    audio_data = b""
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            audio_data += chunk["data"]
+            
+    return audio_data
 
 async def generate_audio_stream(text: str, voice: str = "ka-GE-EkaNeural", rate: str = "+0%", pitch: str = "+0Hz", translate_to: str = None) -> str:
     """

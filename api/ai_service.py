@@ -70,6 +70,22 @@ def prepare_text_for_tts(text: str) -> str:
     text = re.sub(r'([—-])\s*(?=[ა-ჰa-zA-Z])', r'\1, ', text)
     return text
 
+async def generate_audio_bytes(text: str, voice: str = "ka-GE-EkaNeural", rate: str = "+0%", pitch: str = "+0Hz", translate_to: str = None) -> bytes:
+    """Generates audio bytes directly without using a file cache (useful for serverless)."""
+    if translate_to and translate_to != 'none':
+        text = await translate_text(text, target_lang=translate_to)
+
+    tts_ready_text = prepare_text_for_tts(text)
+    communicate = edge_tts.Communicate(tts_ready_text, voice, rate=rate, pitch=pitch)
+    
+    # Accumulate bytes from the stream
+    audio_data = b""
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            audio_data += chunk["data"]
+            
+    return audio_data
+
 async def generate_audio_stream(text: str, voice: str = "ka-GE-EkaNeural", rate: str = "+0%", pitch: str = "+0Hz", translate_to: str = None) -> str:
     if translate_to and translate_to != 'none':
         text = await translate_text(text, target_lang=translate_to)
@@ -77,6 +93,8 @@ async def generate_audio_stream(text: str, voice: str = "ka-GE-EkaNeural", rate:
     tts_ready_text = prepare_text_for_tts(text)
     cache_key = f"{tts_ready_text}_{voice}_{rate}_{pitch}_{translate_to}"
     text_hash = hashlib.md5(cache_key.encode('utf-8')).hexdigest()
+    
+    # Use /tmp for Vercel
     cache_path = os.path.join(CACHE_DIR, f"{text_hash}.mp3")
     audio_url = f"/api/audio/{os.path.basename(cache_path)}"
     

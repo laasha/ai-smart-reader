@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -8,6 +9,7 @@ from dotenv import load_dotenv
 from typing import List, Optional
 import httpx
 import uuid
+import io
 
 load_dotenv()
 
@@ -20,7 +22,7 @@ if not os.path.exists(CACHE_DIR):
 
 # Local imports (imported AFTER setting environment variables)
 from processing import extract_text_from_pdf, extract_text_from_epub, extract_text_from_docx, extract_text_from_txt, extract_text_from_html, extract_text_from_md
-from ai_service import translate_text, generate_audio_stream, explain_text, analyze_book, generate_book_cover, generate_full_audiobook, audiobook_progress, generate_ai_flashcard
+from ai_service import translate_text, generate_audio_stream, generate_audio_bytes, explain_text, analyze_book, generate_book_cover, generate_full_audiobook, audiobook_progress, generate_ai_flashcard
 
 app = FastAPI(title="AI Smart Reader API")
 
@@ -182,14 +184,14 @@ async def translate(request: TranslationRequest):
 @app.post("/tts")
 async def text_to_speech(request: TTSRequest):
     try:
-        audio_url = await generate_audio_stream(
+        audio_bytes = await generate_audio_bytes(
             request.text, 
             voice=request.voice, 
             rate=request.rate, 
             pitch=request.pitch, 
             translate_to=request.translate_to
         )
-        return {"audio_url": audio_url}
+        return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

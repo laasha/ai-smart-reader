@@ -369,7 +369,11 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
             translate_to: translateToLang !== 'none' ? translateToLang : null
           })
         });
-        const { audio_url } = await res.json();
+        
+        if (!res.ok) throw new Error("TTS failed");
+        
+        const blob = await res.blob();
+        const audio_url = URL.createObjectURL(blob);
         
         if (audioPlayerRef.current) {
           audioPlayerRef.current.src = audio_url;
