@@ -17,7 +17,7 @@ import sys
 import os
 
 # Inject current directory into sys.path for Vercel
-sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Local imports
 from processing import extract_text_from_pdf, extract_text_from_epub, extract_text_from_docx, extract_text_from_txt, extract_text_from_html, extract_text_from_md
