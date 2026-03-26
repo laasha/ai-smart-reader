@@ -186,17 +186,19 @@ export const Auth: React.FC = () => {
                 {isLogin ? 'არ გაქვთ ანგარიში? დარეგისტრირდით' : 'უკვე გაქვთ ანგარიში? შემოხვედით'}
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if ((window as any).bypassAuth) {
-                    (window as any).bypassAuth();
-                  }
-                }}
-                className="text-[10px] font-black uppercase tracking-widest text-white hover:text-white transition-all bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 rounded-xl py-3 shadow-lg shadow-indigo-500/10"
-              >
-                სწრაფი შესვლა (Bypass Auth)
-              </button>
+              {import.meta.env.DEV && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if ((window as any).bypassAuth) {
+                      (window as any).bypassAuth();
+                    }
+                  }}
+                  className="text-[10px] font-black uppercase tracking-widest text-white hover:text-white transition-all bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 rounded-xl py-3 shadow-lg shadow-indigo-500/10"
+                >
+                  სწრაფი შესვლა (Bypass Auth)
+                </button>
+              )}
             </div>
 
           </form>

@@ -86,14 +86,14 @@ async def generate_audio_stream(text: str, voice: str = "ka-GE-EkaNeural", rate:
     cache_path = os.path.join(CACHE_DIR, f"{text_hash}.mp3")
     
     if os.path.exists(cache_path):
-        return f"http://localhost:8000/audio/{os.path.basename(cache_path)}"
+        return f"/audio/{os.path.basename(cache_path)}"
         
     # Generate TTS using edge-tts
     communicate = edge_tts.Communicate(tts_ready_text, voice, rate=rate, pitch=pitch)
     await communicate.save(cache_path)
 
                 
-    return f"http://localhost:8000/audio/{os.path.basename(cache_path)}"
+    return f"/audio/{os.path.basename(cache_path)}"
 
 async def explain_text(text: str, context: str = "") -> str:
     """Uses Gemini to provide a smart, contextual literary explanation."""

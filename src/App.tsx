@@ -13,11 +13,13 @@ function App() {
   const [isMock, setIsMock] = useState(false);
 
   useEffect(() => {
-    // Expose a bypass for testing
-    (window as any).bypassAuth = () => {
-      setIsMock(true);
-      fetchBooks();
-    };
+    // Expose a bypass for testing (only in development)
+    if (import.meta.env.DEV) {
+      (window as any).bypassAuth = () => {
+        setIsMock(true);
+        fetchBooks();
+      };
+    }
 
     if (supabase) {
       supabase.auth.getSession().then(({ data: { session } }) => {

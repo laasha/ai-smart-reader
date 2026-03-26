@@ -959,6 +959,10 @@ const Reader: React.FC<ReaderProps> = ({ content, bookId, onBack }) => {
                       )}
                     </button>
                     {isGeneratingAudiobook && <div className="mt-2 w-full h-1 bg-black/5 dark:bg-white/10 rounded-full overflow-hidden"><motion.div className="h-full bg-indigo-500" animate={{ width: `${audiobookProgress}%` }} /></div>}
+                    
+                    <p className="mt-3 text-[10px] text-zinc-400 font-bold text-center leading-tight">
+                      შენიშვნა: სრული წიგნის გენერაციას სჭირდება დრო და სტაბილური სერვერი. Vercel-ზე შეიძლება გაწყდეს დიდი წიგნების შემთხვევაში.
+                    </p>
                   </div>
                 </div>
               )}
